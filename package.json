@@ -1,20 +1,8 @@
 {
   "name": "helium",
-  "module": "src/index.tsx",
-  "type": "module",
   "private": true,
-  "scripts": {
-    "dev": "bun run --watch src/index.tsx"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@opentui/core": "^0.1.57",
-    "@opentui/react": "^0.1.57",
-    "react": "^19.1.1"
-  }
+  "workspaces": [
+    "packages/*"
+  ]
 }
+
