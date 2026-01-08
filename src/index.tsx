@@ -8,6 +8,7 @@ import {
 import { createRoot, useKeyboard } from "@opentui/react";
 
 import { isPrintableASCII } from "./helper";
+import { Session } from "./session";
 
 function App() {
   const textareaRef = useRef<TextareaRenderable>(null);
@@ -88,7 +89,7 @@ function App() {
     const selectedOption = selectRef.current?.getSelectedOption();
     const submittedText =
       selectedOption?.value || textareaRef.current?.plainText || "";
-    console.log("Submitted:", submittedText);
+    Session.prompt(submittedText);
   };
 
   return (
