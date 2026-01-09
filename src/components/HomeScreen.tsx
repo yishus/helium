@@ -10,7 +10,7 @@ import { isPrintableASCII } from "../helper";
 import { Session } from "../session";
 
 interface Props {
-  initialPromptSubmitted: () => void;
+  initialPromptSubmitted: (prompt: string) => void;
   session: Session;
 }
 
@@ -92,7 +92,7 @@ const HomeScreen = (props: Props) => {
       selectedOption?.value || textareaRef.current?.plainText || "";
     if (submittedText.length > 0) {
       session.prompt(submittedText);
-      initialPromptSubmitted();
+      initialPromptSubmitted(submittedText);
     }
   };
 

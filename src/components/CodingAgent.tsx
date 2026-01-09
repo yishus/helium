@@ -5,15 +5,17 @@ import type { UIMessage } from "../session";
 
 interface Props {
   eventBus: EventBus;
+  userPrompt: string;
 }
 
 const CodingAgent = (props: Props) => {
-  const { eventBus } = props;
-  const [messages, setMessages] = useState<UIMessage[]>([]);
+  const { eventBus, userPrompt } = props;
+  const [messages, setMessages] = useState<UIMessage[]>([
+    { role: "user", text: userPrompt },
+  ]);
 
   useEffect(() => {
     eventBus.on("message_start", (event) => {
-      console.log("message_start", event);
       setMessages((prevMessages) => [
         ...prevMessages,
         { role: event.role, text: "" },

@@ -14,8 +14,10 @@ const App = () => {
   const [sessionState, setSessionState] = useState<"startup" | "started">(
     "startup",
   );
-  const handleInitialPromptSubmitted = () => {
+  const [initialPrompt, setInitialPrompt] = useState<string>("");
+  const handleInitialPromptSubmitted = (prompt: string) => {
     setSessionState("started");
+    setInitialPrompt(prompt);
   };
 
   return (
@@ -26,7 +28,9 @@ const App = () => {
           session={session}
         />
       )}
-      {sessionState == "started" && <CodingAgent eventBus={eventBus} />}
+      {sessionState == "started" && (
+        <CodingAgent eventBus={eventBus} userPrompt={initialPrompt} />
+      )}
     </>
   );
 };
