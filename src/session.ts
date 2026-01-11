@@ -1,6 +1,6 @@
-import { AI, type Message, type MessageDelta } from "./ai";
+import { type MessageDelta } from "./ai";
 import { EventBus } from "./event-bus";
-import { Provider } from "./providers";
+import { Agent } from "./agent";
 
 interface SessionOptions {
   eventBus: EventBus;
@@ -12,22 +12,15 @@ export interface UIMessage {
 }
 
 export class Session {
-  context: Message[] = [];
   eventBus: EventBus;
+  agent = new Agent();
 
   constructor(options: SessionOptions) {
     this.eventBus = options.eventBus;
   }
 
   async prompt(input: string) {
-    const nextMesage: Message = {
-      role: "user",
-      content: {
-        type: "text",
-        text: input,
-      },
-    };
-    const stream = AI.stream(Provider.Anthropic, [...this.context, nextMesage]);
+    const stream = this.agent.stream(input);
     for await (const event of stream) {
       this.processDelta(event);
     }

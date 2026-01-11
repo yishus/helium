@@ -38,12 +38,28 @@ interface MessageTextContent {
   text: string;
 }
 
+type ContentBlock = MessageTextContent;
+
 export interface Message {
   role: "user" | "assistant";
-  content: MessageTextContent;
+  content: ContentBlock[];
 }
 
 export namespace AI {
+  export const prompt = async (provider: Provider, input: Message[]) => {
+    const authStorage = new AuthStorage();
+
+    switch (provider) {
+      case Provider.Anthropic:
+        const apiKey = authStorage.get(Provider.Anthropic);
+        const response = AnthropicProvider.prompt(input, {
+          apiKey,
+          tools: Object.values(tools),
+        });
+        return response;
+    }
+  };
+
   export const stream = (provider: Provider, input: Message[]) => {
     const authStorage = new AuthStorage();
 

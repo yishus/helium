@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type {
+  Message as AnthropicMessage,
   MessageParam,
   RawMessageStreamEvent,
 } from "@anthropic-ai/sdk/resources/messages";
@@ -13,6 +14,25 @@ export interface AnthropicStreamOptions {
 }
 
 export namespace AnthropicProvider {
+  export const prompt = async (
+    input: Message[],
+    options?: AnthropicStreamOptions,
+  ) => {
+    const { apiKey, tools } = options || {};
+    const client = new Anthropic({
+      apiKey: apiKey,
+    });
+
+    const response = await client.messages.create({
+      max_tokens: 1024,
+      messages: input.map(message_to_anthropic_message_param),
+      tools: tools?.map((tool) => tool.definition),
+      model: "claude-sonnet-4-5-20250929",
+    });
+
+    return anthropic_message_to_message(response);
+  };
+
   export const stream = async function* (
     input: Message[],
     options?: AnthropicStreamOptions,
@@ -65,7 +85,14 @@ export namespace AnthropicProvider {
   ): MessageParam => {
     return {
       role: messge.role,
-      content: messge.content.text,
+      content: messge.content,
+    };
+  };
+
+  const anthropic_message_to_message = (message: AnthropicMessage) => {
+    return {
+      role: message.role,
+      content: message.content.filter((c) => c.type === "text"),
     };
   };
 }
