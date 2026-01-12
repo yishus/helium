@@ -29,7 +29,11 @@ const App = () => {
         />
       )}
       {sessionState == "started" && (
-        <CodingAgent eventBus={eventBus} userPrompt={initialPrompt} />
+        <CodingAgent
+          eventBus={eventBus}
+          session={session}
+          userPrompt={initialPrompt}
+        />
       )}
     </>
   );

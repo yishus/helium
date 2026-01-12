@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 
 import { EventBus } from "../event-bus";
-import type { UIMessage } from "../session";
+import { Session, type UIMessage } from "../session";
+import ChatTextbox from "./ChatTextbox";
 
 interface Props {
   eventBus: EventBus;
+  session: Session;
   userPrompt: string;
 }
 
 const CodingAgent = (props: Props) => {
-  const { eventBus, userPrompt } = props;
+  const { eventBus, session, userPrompt } = props;
   const [messages, setMessages] = useState<UIMessage[]>([
     { role: "user", text: userPrompt },
   ]);
@@ -47,10 +49,21 @@ const CodingAgent = (props: Props) => {
     return <text key={index}>{message.text}</text>;
   };
 
+  const handleSubmit = (submittedText: string) => {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { role: "user", text: submittedText },
+    ]);
+    session.prompt(submittedText);
+  };
+
   return (
     <box style={{ flexDirection: "row", width: "100%", height: "100%" }}>
-      <box style={{ width: "75%", border: true }}>
-        {messages.map(renderMessage)}
+      <box style={{ width: "75%", border: true, flexDirection: "column" }}>
+        <scrollbox style={{ flexGrow: 1 }}>
+          {messages.map(renderMessage)}
+        </scrollbox>
+        <ChatTextbox onSubmit={handleSubmit} minHeight={3} />
       </box>
       <box style={{ width: "25%", border: true }}></box>
     </box>
