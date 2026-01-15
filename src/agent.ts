@@ -2,19 +2,26 @@ import { AI, type Message } from "./ai";
 import { Provider } from "./providers";
 
 export class Agent {
-  _context: Message[] = [];
+  private context: Message[] = [];
 
-  stream(input: string) {
-    const stream = AI.stream(Provider.Anthropic, [
-      ...this._context,
+  async *stream(input: string) {
+    const { fullMessage, streamText } = AI.stream(Provider.Anthropic, [
+      ...this.context,
       this.nextMessage(input),
     ]);
-    return stream;
+
+    for await (const event of streamText()) {
+      yield event;
+    }
+
+    const message = await fullMessage();
+    this.runToolCalls(message);
+    this.context.push(message);
   }
 
   async prompt(input: string) {
     const response = await AI.prompt(Provider.Anthropic, [
-      ...this._context,
+      ...this.context,
       this.nextMessage(input),
     ]);
     return { response, text: this.textResponse(response) };
@@ -38,5 +45,9 @@ export class Agent {
         return content.text;
       }
     }
+  }
+
+  runToolCalls(message: Message) {
+    console.log(message);
   }
 }

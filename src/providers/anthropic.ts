@@ -33,28 +33,33 @@ export namespace AnthropicProvider {
     return anthropic_message_to_message(response);
   };
 
-  export const stream = async function* (
+  export const stream = (
     input: Message[],
     options?: AnthropicStreamOptions,
-  ) {
+  ) => {
     const { apiKey, tools } = options || {};
     const client = new Anthropic({
       apiKey: apiKey,
     });
 
-    const stream = await client.messages.create({
+    const stream = client.messages.stream({
       max_tokens: 1024,
       messages: input.map(message_to_anthropic_message_param),
       tools: tools?.map((tool) => tool.definition),
       model: "claude-sonnet-4-5-20250929",
-      stream: true,
     });
 
-    for await (const messageStreamEvent of stream) {
-      yield anthropic_delta_to_message_delta(messageStreamEvent);
-    }
-
-    return stream;
+    return {
+      fullMessage: async function () {
+        const message: AnthropicMessage = await stream.finalMessage();
+        return anthropic_message_to_message(message);
+      },
+      streamText: async function* () {
+        for await (const event of stream) {
+          yield anthropic_delta_to_message_delta(event);
+        }
+      },
+    };
   };
 
   const anthropic_delta_to_message_delta = (
