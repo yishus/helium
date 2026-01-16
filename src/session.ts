@@ -1,10 +1,7 @@
-import { type MessageDelta } from "./ai";
-import { EventBus } from "./event-bus";
-import { Agent } from "./agent";
+import EventEmitter from "events";
 
-interface SessionOptions {
-  eventBus: EventBus;
-}
+import { type MessageDelta } from "./ai";
+import { Agent } from "./agent";
 
 export interface UIMessage {
   role: "user" | "assistant";
@@ -12,31 +9,31 @@ export interface UIMessage {
 }
 
 export class Session {
-  eventBus: EventBus;
   agent = new Agent();
-
-  constructor(options: SessionOptions) {
-    this.eventBus = options.eventBus;
-  }
+  eventEmitter = new EventEmitter();
+  canUseToolHandler?: (toolName: string) => Promise<boolean>;
 
   async prompt(input: string) {
-    const stream = this.agent.stream(input);
+    const stream = this.agent.stream(input, {
+      canUseTool: this.handleToolUseRequest.bind(this),
+    });
     for await (const event of stream) {
       this.processDelta(event);
     }
   }
 
+  async handleToolUseRequest(toolName: string, input: unknown) {
+    const canUse = await this.canUseToolHandler?.(toolName);
+    return canUse || false;
+  }
+
   processDelta(delta: MessageDelta) {
     if (delta.type === "message_start") {
-      this.eventBus.emit("message_start", { role: delta.role });
+      this.eventEmitter.emit("message_start", { role: delta.role });
     }
 
     if (delta.type == "text_start" || delta.type == "text_update") {
-      this.eventBus.emit("message_update", { text: delta.text });
-    }
-
-    if (delta.type === "text_end") {
-      this.eventBus.emit("message_end");
+      this.eventEmitter.emit("message_update", { text: delta.text });
     }
   }
 }

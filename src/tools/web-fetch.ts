@@ -25,7 +25,7 @@ const webFetchSchema = Type.Object({
 type argsType = Static<typeof webFetchSchema>;
 
 const definition = {
-  name: "WebFetch",
+  name: "webFetch",
   description,
   input_schema: webFetchSchema,
 };

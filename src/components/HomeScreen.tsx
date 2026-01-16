@@ -3,14 +3,12 @@ import ChatTextbox from "./ChatTextbox";
 
 interface Props {
   initialPromptSubmitted: (prompt: string) => void;
-  session: Session;
 }
 
 const HomeScreen = (props: Props) => {
-  const { initialPromptSubmitted, session } = props;
+  const { initialPromptSubmitted } = props;
 
   const handleSubmit = (submittedText: string) => {
-    session.prompt(submittedText);
     initialPromptSubmitted(submittedText);
   };
 

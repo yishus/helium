@@ -2,10 +2,15 @@ import { AI, type Message, type MessageParam } from "./ai";
 import { Provider } from "./providers";
 import tools from "./tools";
 
+interface StreamOptions {
+  canUseTool?: (name: string, input: unknown) => Promise<boolean>;
+}
+
 export class Agent {
   private context: MessageParam[] = [];
 
-  async *stream(input?: string) {
+  async *stream(input?: string, options?: StreamOptions) {
+    const { canUseTool } = options || {};
     if (input) {
       this.context.push(this.nextMessage(input));
     }
@@ -24,7 +29,7 @@ export class Agent {
       if (message.content.every((c) => c.type !== "tool_use")) {
         break;
       }
-      await this.runToolCalls(message);
+      await this.runToolCalls(message, canUseTool);
     }
   }
 
@@ -56,7 +61,10 @@ export class Agent {
     }
   }
 
-  async runToolCalls(message: Message) {
+  async runToolCalls(
+    message: Message,
+    canUseTool?: (name: string, input: unknown) => Promise<boolean>,
+  ) {
     const messageToProcess = message;
     let responses = [];
     for (const content of messageToProcess.content) {
@@ -64,13 +72,36 @@ export class Agent {
         const { id, name, input } = content;
         switch (name) {
           case "read":
-            const res = await tools.read.callFunction(
+            const resRead = await tools.read.callFunction(
               input as Parameters<typeof tools.read.callFunction>[0],
             );
             responses.push({
               id,
-              content: [{ type: "text" as const, text: res }],
+              content: [{ type: "text" as const, text: resRead }],
             });
+            break;
+          case "webFetch":
+            if (canUseTool) {
+              const canUse = await canUseTool(name, input);
+              if (!canUse) {
+                responses.push({
+                  id,
+                  content: [
+                    { type: "text" as const, text: "Tool use not permitted." },
+                  ],
+                  isError: true,
+                });
+                break;
+              }
+            }
+            const resWebFetch = await tools.webFetch.callFunction(
+              input as Parameters<typeof tools.webFetch.callFunction>[0],
+            );
+            responses.push({
+              id,
+              content: [{ type: "text" as const, text: resWebFetch }],
+            });
+            break;
         }
       }
     }

@@ -18,10 +18,6 @@ interface TextUpdateDelta {
   text: string;
 }
 
-interface TextEndDelta {
-  type: "text_end";
-}
-
 interface IgnoredDelta {
   type: "ignored";
 }
@@ -30,7 +26,6 @@ export type MessageDelta =
   | MessageStartDelta
   | TextStartDelta
   | TextUpdateDelta
-  | TextEndDelta
   | IgnoredDelta;
 
 interface MessageTextContent {
