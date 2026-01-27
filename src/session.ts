@@ -1,3 +1,5 @@
+import { readFileSync } from "fs";
+import { join } from "path";
 import EventEmitter from "events";
 
 import { type MessageDelta } from "./ai";
@@ -8,8 +10,10 @@ export interface UIMessage {
   text: string;
 }
 
+const SYSTEM_PROMPT_PATH = join(__dirname, "prompts/system_workflow.md");
+
 export class Session {
-  agent = new Agent();
+  agent = new Agent(readFileSync(SYSTEM_PROMPT_PATH, "utf8"));
   eventEmitter = new EventEmitter();
   canUseToolHandler?: (toolName: string) => Promise<boolean>;
 

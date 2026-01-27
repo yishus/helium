@@ -9,6 +9,8 @@ interface StreamOptions {
 export class Agent {
   private context: MessageParam[] = [];
 
+  constructor(public systemPrompt?: string) {}
+
   async *stream(input?: string, options?: StreamOptions) {
     const { canUseTool } = options || {};
     if (input) {
@@ -18,6 +20,7 @@ export class Agent {
       const { fullMessage, streamText } = AI.stream(
         Provider.Anthropic,
         this.context,
+        this.systemPrompt,
       );
 
       for await (const event of streamText()) {

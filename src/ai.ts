@@ -74,7 +74,11 @@ export namespace AI {
     }
   };
 
-  export const stream = (provider: Provider, input: MessageParam[]) => {
+  export const stream = (
+    provider: Provider,
+    input: MessageParam[],
+    systemPrompt?: string,
+  ) => {
     const authStorage = new AuthStorage();
 
     switch (provider) {
@@ -82,6 +86,7 @@ export namespace AI {
         const apiKey = authStorage.get(Provider.Anthropic);
         const stream = AnthropicProvider.stream(input, {
           apiKey,
+          systemPrompt,
           tools: Object.values(tools),
         });
         return stream;

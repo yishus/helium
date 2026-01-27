@@ -11,6 +11,7 @@ import type { Tool } from "../tools";
 export interface AnthropicStreamOptions {
   apiKey?: string;
   tools?: Tool<any>[];
+  systemPrompt?: string;
 }
 
 export namespace AnthropicProvider {
@@ -37,7 +38,7 @@ export namespace AnthropicProvider {
     input: MessageParam[],
     options?: AnthropicStreamOptions,
   ) => {
-    const { apiKey, tools } = options || {};
+    const { apiKey, systemPrompt, tools } = options || {};
     const client = new Anthropic({
       apiKey: apiKey,
     });
@@ -47,6 +48,7 @@ export namespace AnthropicProvider {
       messages: input.map(message_param_to_anthropic_message_param),
       tools: tools?.map((tool) => tool.definition),
       model: "claude-sonnet-4-5-20250929",
+      system: systemPrompt,
     });
 
     return {
