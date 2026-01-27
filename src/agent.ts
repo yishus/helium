@@ -1,14 +1,17 @@
 import { AI, type Message, type MessageParam } from "./ai";
 import { Provider } from "./providers";
 import tools, {
+  callTool,
   requestToolUsePermission,
   toolUseDescription,
+  type ToolInputMap,
   type ToolName,
 } from "./tools";
 
 interface StreamOptions {
   canUseTool?: (name: string, input: unknown) => Promise<boolean>;
   emitMessage?: (message: string) => void;
+  saveToSessionMemory?: (key: string, value: unknown) => void;
 }
 
 export class Agent {
@@ -17,7 +20,7 @@ export class Agent {
   constructor(public systemPrompt?: string) {}
 
   async *stream(input?: string, options?: StreamOptions) {
-    const { canUseTool, emitMessage } = options || {};
+    const { canUseTool, emitMessage, saveToSessionMemory } = options || {};
     if (input) {
       this.context.push(this.nextMessage(input));
     }
@@ -37,7 +40,12 @@ export class Agent {
       if (message.content.every((c) => c.type !== "tool_use")) {
         break;
       }
-      const success = await this.runToolCalls(message, canUseTool, emitMessage);
+      const success = await this.runToolCalls(
+        message,
+        canUseTool,
+        emitMessage,
+        saveToSessionMemory,
+      );
       if (!success) {
         break;
       }
@@ -76,6 +84,7 @@ export class Agent {
     message: Message,
     canUseTool?: (name: string, input: unknown) => Promise<boolean>,
     emitMessage?: (message: string) => void,
+    saveToSessionMemory?: (key: string, value: unknown) => void,
   ): Promise<boolean> {
     const messageToProcess = message;
     let responses = [];
@@ -121,7 +130,14 @@ export class Agent {
           emitMessage?.(
             `${name} ${toolUseDescription(name as ToolName, input)}`,
           );
-          const result = await tool.callFunction(input as never);
+          const result = await callTool(
+            name as ToolName,
+            input as ToolInputMap[ToolName],
+          );
+          if (name === "read") {
+            const readInput = input as ToolInputMap["read"];
+            saveToSessionMemory?.(readInput.path, result);
+          }
           responses.push({
             id,
             content: [{ type: "text" as const, text: result }],

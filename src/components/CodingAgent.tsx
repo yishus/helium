@@ -5,6 +5,7 @@ import type { SelectOption } from "@opentui/core";
 import { Session, type ToolUseRequest, type UIMessage } from "../session";
 import ChatTextbox from "./ChatTextbox";
 import { useKeyboard } from "@opentui/react";
+import type { ToolInputMap } from "../tools";
 
 interface Props {
   session: Session;
@@ -98,6 +99,29 @@ const CodingAgent = (props: Props) => {
     return <text key={index}>{message.text}</text>;
   };
 
+  const renderToolUseRequest = () => {
+    if (!showToolUseRequest || toolUseRequestRef.current === null) {
+      return null;
+    }
+    const { toolName, description, input } = toolUseRequestRef.current;
+    let diffContent;
+    if (toolName === "edit") {
+      diffContent = session.computeEditDiff(input as ToolInputMap["edit"]);
+    }
+    return (
+      <>
+        <text>{`${toolName} ${description}`}</text>
+        {diffContent && <diff diff={diffContent} showLineNumbers={true} />}
+        <select
+          style={{ height: 6 }}
+          options={toolUseRequestoptions}
+          focused={false}
+          ref={selectRef}
+        />
+      </>
+    );
+  };
+
   const handleSubmit = (submittedText: string) => {
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -111,17 +135,7 @@ const CodingAgent = (props: Props) => {
       <box style={{ width: "75%", border: true, flexDirection: "column" }}>
         <scrollbox style={{ flexGrow: 1 }}>
           {messages.map(renderMessage)}
-          {showToolUseRequest && (
-            <>
-              <text>{`${toolUseRequestRef.current?.toolName} ${toolUseRequestRef.current?.description}`}</text>
-              <select
-                style={{ height: 6 }}
-                options={toolUseRequestoptions}
-                focused={false}
-                ref={selectRef}
-              />
-            </>
-          )}
+          {renderToolUseRequest()}
         </scrollbox>
         <ChatTextbox onSubmit={handleSubmit} minHeight={3} />
       </box>

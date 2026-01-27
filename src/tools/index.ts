@@ -19,6 +19,19 @@ const tools = { bash, edit, read, webFetch, write };
 
 export type ToolName = keyof typeof tools;
 
+// Type map that extracts input types from each tool
+export type ToolInputMap = {
+  [K in ToolName]: Static<(typeof tools)[K]["definition"]["input_schema"]>;
+};
+
+// Typed call function that preserves the relationship
+export function callTool<T extends ToolName>(
+  name: T,
+  input: ToolInputMap[T],
+): Promise<string> {
+  return tools[name].callFunction(input as never);
+}
+
 export const requestToolUsePermission: Record<ToolName, boolean> = {
   bash: true,
   edit: true,
@@ -33,21 +46,19 @@ export const toolUseDescription = (
 ): string => {
   switch (toolName) {
     case "bash":
-      const bashInput = input as Static<typeof bash.definition.input_schema>;
+      const bashInput = input as ToolInputMap["bash"];
       return bashInput.command;
     case "edit":
-      const editInput = input as Static<typeof edit.definition.input_schema>;
+      const editInput = input as ToolInputMap["edit"];
       return `file at path: ${editInput.path}`;
     case "read":
-      const readInput = input as Static<typeof read.definition.input_schema>;
+      const readInput = input as ToolInputMap["read"];
       return `file at path: ${readInput.path}`;
     case "webFetch":
-      const webFetchInput = input as Static<
-        typeof webFetch.definition.input_schema
-      >;
+      const webFetchInput = input as ToolInputMap["webFetch"];
       return `URL: ${webFetchInput.url}`;
     case "write":
-      const writeInput = input as Static<typeof write.definition.input_schema>;
+      const writeInput = input as ToolInputMap["write"];
       return `file at path: ${writeInput.path}`;
   }
 };
