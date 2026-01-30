@@ -8,10 +8,20 @@ import type {
 import type { MessageResponse, MessageParam, MessageDelta } from "../ai";
 import type { Tool } from "../tools";
 
+export type ModelId = "claude-sonnet-4-5-20250929" | "claude-opus-4-20250514";
+
+export const DEFAULT_MODEL: ModelId = "claude-sonnet-4-5-20250929";
+
+export const AVAILABLE_MODELS: { id: ModelId; name: string }[] = [
+  { id: "claude-sonnet-4-5-20250929", name: "Sonnet" },
+  { id: "claude-opus-4-20250514", name: "Opus" },
+];
+
 export interface AnthropicStreamOptions {
   apiKey?: string;
   tools?: Tool<any>[];
   systemPrompt?: string;
+  model?: ModelId;
 }
 
 export namespace AnthropicProvider {
@@ -19,16 +29,16 @@ export namespace AnthropicProvider {
     input: MessageParam[],
     options?: AnthropicStreamOptions,
   ) => {
-    const { apiKey, tools } = options || {};
+    const { apiKey, tools, model = DEFAULT_MODEL } = options || {};
     const client = new Anthropic({
       apiKey: apiKey,
     });
 
     const response = await client.messages.create({
-      max_tokens: 1024,
+      max_tokens: 16384,
       messages: input.map(message_param_to_anthropic_message_param),
       tools: tools?.map((tool) => tool.definition),
-      model: "claude-sonnet-4-5-20250929",
+      model,
     });
 
     return anthropic_message_to_message_response(response);
@@ -38,16 +48,23 @@ export namespace AnthropicProvider {
     input: MessageParam[],
     options?: AnthropicStreamOptions,
   ) => {
-    const { apiKey, systemPrompt, tools } = options || {};
+    const {
+      apiKey,
+      systemPrompt,
+      tools,
+      model = DEFAULT_MODEL,
+    } = options || {};
     const client = new Anthropic({
       apiKey: apiKey,
     });
 
+    console.log(model);
+
     const stream = client.messages.stream({
-      max_tokens: 1024,
+      max_tokens: 16384,
       messages: input.map(message_param_to_anthropic_message_param),
       tools: tools?.map((tool) => tool.definition),
-      model: "claude-sonnet-4-5-20250929",
+      model,
       system: systemPrompt,
     });
 
@@ -99,6 +116,7 @@ export namespace AnthropicProvider {
   const anthropic_message_to_message_response = (
     message: AnthropicMessage,
   ): MessageResponse => {
+    console.log(message);
     return {
       message: {
         role: message.role,

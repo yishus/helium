@@ -2,12 +2,15 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import EventEmitter from "events";
 
-import { type MessageDelta } from "./ai";
+import { type MessageDelta, type ModelId, DEFAULT_MODEL, AVAILABLE_MODELS } from "./ai";
 import { Agent } from "./agent";
 import { toolUseDescription, type ToolInputMap, type ToolName } from "./tools";
 import { generateEditDiff, generateWriteDiff } from "./helper";
 import { isErrnoException } from "./type-helper";
 import { TokenCostHelper } from "./token-cost";
+
+export type { ModelId };
+export { DEFAULT_MODEL, AVAILABLE_MODELS };
 
 export interface UIMessage {
   role: "user" | "assistant";
@@ -27,6 +30,7 @@ export class Session {
   eventEmitter = new EventEmitter();
   canUseToolHandler?: (request: ToolUseRequest) => Promise<boolean>;
   memory: { [key: string]: any } = {};
+  totalCost = 0;
 
   constructor() {
     let systemReminderStart;
@@ -86,11 +90,24 @@ export class Session {
   }
 
   handleTokenUsage(input_tokens: number, output_tokens: number) {
+    const streamCost = TokenCostHelper.calculateCost(
+      input_tokens,
+      output_tokens,
+      this.agent.model,
+    ).totalCost;
+    this.totalCost += streamCost;
     this.eventEmitter.emit("token_usage_update", {
-      cost: TokenCostHelper.calculateCost(input_tokens, output_tokens)
-        .totalCost,
+      cost: this.totalCost,
       token_count: input_tokens + output_tokens,
     });
+  }
+
+  setModel(model: ModelId) {
+    this.agent.model = model;
+  }
+
+  getModel(): ModelId {
+    return this.agent.model;
   }
 
   processDelta(delta: MessageDelta) {

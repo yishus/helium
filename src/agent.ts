@@ -1,4 +1,4 @@
-import { AI, type Message, type MessageParam } from "./ai";
+import { AI, type Message, type MessageParam, type ModelId, DEFAULT_MODEL } from "./ai";
 import { Provider } from "./providers";
 import tools, {
   callTool,
@@ -18,6 +18,7 @@ interface StreamOptions {
 export class Agent {
   private context: MessageParam[] = [];
   totalTokensUsed = 0;
+  model: ModelId = DEFAULT_MODEL;
 
   constructor(
     public systemPrompt?: string,
@@ -48,6 +49,7 @@ export class Agent {
         Provider.Anthropic,
         this.context,
         this.systemPrompt,
+        this.model,
       );
 
       for await (const event of streamText()) {
@@ -74,10 +76,11 @@ export class Agent {
   }
 
   async prompt(input: string) {
-    const { message } = await AI.prompt(Provider.Anthropic, [
-      ...this.context,
-      this.nextMessage(input),
-    ]);
+    const { message } = await AI.prompt(
+      Provider.Anthropic,
+      [...this.context, this.nextMessage(input)],
+      this.model,
+    );
     return { message, text: this.textResponse(message) };
   }
 

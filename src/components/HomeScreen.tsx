@@ -1,4 +1,3 @@
-import { Session } from "../session";
 import ChatTextbox from "./ChatTextbox";
 
 interface Props {

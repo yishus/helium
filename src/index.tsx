@@ -14,7 +14,6 @@ const App = () => {
   );
   const [initialPrompt, setInitialPrompt] = useState<string>("");
   const handleInitialPromptSubmitted = (prompt: string) => {
-    session.prompt(prompt);
     setSessionState("started");
     setInitialPrompt(prompt);
   };

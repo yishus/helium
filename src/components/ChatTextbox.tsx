@@ -9,11 +9,7 @@ import { useKeyboard } from "@opentui/react";
 import { isPrintableASCII } from "../helper";
 
 const slashCommands = [
-  { name: "/help", description: "Show available commands", value: "help" },
-  { name: "/clear", description: "Clear the conversation", value: "clear" },
-  { name: "/commit", description: "Create a git commit", value: "commit" },
-  { name: "/review", description: "Review recent changes", value: "review" },
-  { name: "/plan", description: "Create an implementation plan", value: "/plan" },
+  { name: "/model", description: "Select AI model", value: "model" },
 ];
 
 interface Props {
@@ -91,8 +87,9 @@ const ChatTextbox = (props: Props) => {
 
   const handleSubmit = () => {
     const selectedOption = selectRef.current?.getSelectedOption();
-    const submittedText =
-      selectedOption?.value || textareaRef.current?.plainText || "";
+    const submittedText = selectedOption?.value
+      ? `/${selectedOption.value}`
+      : textareaRef.current?.plainText || "";
     if (submittedText.length > 0) {
       onSubmit(submittedText);
       textareaRef.current?.clear();

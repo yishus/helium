@@ -1,7 +1,10 @@
-import { AnthropicProvider } from "./providers/anthropic";
+import { AnthropicProvider, type ModelId } from "./providers/anthropic";
 import { AuthStorage } from "./auth-storage";
 import { Provider } from "./providers";
 import tools from "./tools";
+
+export type { ModelId } from "./providers/anthropic";
+export { DEFAULT_MODEL, AVAILABLE_MODELS } from "./providers/anthropic";
 
 interface MessageStartDelta {
   type: "message_start";
@@ -68,7 +71,11 @@ export interface MessageParam {
 }
 
 export namespace AI {
-  export const prompt = async (provider: Provider, input: MessageParam[]) => {
+  export const prompt = async (
+    provider: Provider,
+    input: MessageParam[],
+    model?: ModelId,
+  ) => {
     const authStorage = new AuthStorage();
 
     switch (provider) {
@@ -77,6 +84,7 @@ export namespace AI {
         const response = AnthropicProvider.prompt(input, {
           apiKey,
           tools: Object.values(tools),
+          model,
         });
         return response;
     }
@@ -86,6 +94,7 @@ export namespace AI {
     provider: Provider,
     input: MessageParam[],
     systemPrompt?: string,
+    model?: ModelId,
   ) => {
     const authStorage = new AuthStorage();
 
@@ -96,6 +105,7 @@ export namespace AI {
           apiKey,
           systemPrompt,
           tools: Object.values(tools),
+          model,
         });
         return stream;
     }

@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { type SelectRenderable } from "@opentui/core";
 import type { SelectOption } from "@opentui/core";
 
-import { Session, type ToolUseRequest, type UIMessage } from "../session";
+import {
+  Session,
+  type ToolUseRequest,
+  type UIMessage,
+  type ModelId,
+  AVAILABLE_MODELS,
+} from "../session";
 import ChatTextbox from "./ChatTextbox";
 import { useKeyboard } from "@opentui/react";
 import type { ToolInputMap } from "../tools";
@@ -21,16 +27,23 @@ const toolUseRequestoptions: SelectOption[] = [
   },
 ];
 
+const modelOptions: SelectOption[] = AVAILABLE_MODELS.map((m) => ({
+  name: m.name,
+  description: m.id,
+  value: m.id,
+}));
+
 const CodingAgent = (props: Props) => {
   const { session, userPrompt } = props;
-  const [messages, setMessages] = useState<UIMessage[]>([
-    { role: "user", text: userPrompt },
-  ]);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [tokenCost, setTokenCost] = useState(0);
   const [tokenUsage, setTokenUsage] = useState(0);
   const [showToolUseRequest, setShowToolUseRequest] = useState(false);
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [currentModel, setCurrentModel] = useState<ModelId>(session.getModel());
   const toolUseRequestRef = useRef<ToolUseRequest | null>(null);
   const selectRef = useRef<SelectRenderable>(null);
+  const modelSelectRef = useRef<SelectRenderable>(null);
   const pendingApprovalRef = useRef<{
     resolve: (approved: boolean) => void;
   } | null>(null);
@@ -71,9 +84,41 @@ const CodingAgent = (props: Props) => {
       setTokenCost(event.cost);
       setTokenUsage(event.token_count);
     });
+
+    // Handle the initial prompt
+    handleSubmit(userPrompt);
   }, []);
 
   useKeyboard((key) => {
+    if (showModelSelector) {
+      if (key.name === "down") {
+        modelSelectRef.current?.moveDown();
+        return;
+      }
+      if (key.name === "up") {
+        modelSelectRef.current?.moveUp();
+        return;
+      }
+      if (key.name === "return") {
+        const selected = modelSelectRef.current?.getSelectedOption();
+        if (selected?.value) {
+          const newModel = selected.value as ModelId;
+          session.setModel(newModel);
+          setCurrentModel(newModel);
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: `Model changed to ${selected.name}` },
+          ]);
+        }
+        setShowModelSelector(false);
+        return;
+      }
+      if (key.name === "escape") {
+        setShowModelSelector(false);
+        return;
+      }
+    }
+
     if (showToolUseRequest) {
       if (key.name === "down") {
         selectRef.current?.moveDown();
@@ -131,7 +176,35 @@ const CodingAgent = (props: Props) => {
     );
   };
 
+  const renderModelSelector = () => {
+    if (!showModelSelector) {
+      return null;
+    }
+    const currentModelName =
+      AVAILABLE_MODELS.find((m) => m.id === currentModel)?.name ?? "Unknown";
+    return (
+      <box style={{ border: true, padding: 1 }}>
+        <text style={{ marginBottom: 1 }}>
+          Select model (current: {currentModelName})
+        </text>
+        <select
+          style={{ height: 4 }}
+          options={modelOptions}
+          focused={false}
+          ref={modelSelectRef}
+        />
+        <text style={{ marginTop: 1 }}>
+          Press Enter to select, Escape to cancel
+        </text>
+      </box>
+    );
+  };
+
   const handleSubmit = (submittedText: string) => {
+    if (submittedText === "/model") {
+      setShowModelSelector(true);
+      return;
+    }
     setMessages((prevMessages) => [
       ...prevMessages,
       { role: "user", text: submittedText },
@@ -149,12 +222,18 @@ const CodingAgent = (props: Props) => {
         >
           {messages.map(renderMessage)}
           {renderToolUseRequest()}
+          {renderModelSelector()}
         </scrollbox>
         <ChatTextbox onSubmit={handleSubmit} minHeight={3} />
       </box>
-      <box style={{ width: "25%", border: true }}>
+      <box style={{ width: "25%", border: true, flexDirection: "column" }}>
+        <text>
+          Model:{" "}
+          {AVAILABLE_MODELS.find((m) => m.id === currentModel)?.name ??
+            "Unknown"}
+        </text>
         <text>Tokens used: {tokenUsage}</text>
-        <text>Cost: ${tokenCost}</text>
+        <text>Cost: ${tokenCost.toFixed(6)}</text>
       </box>
     </box>
   );
