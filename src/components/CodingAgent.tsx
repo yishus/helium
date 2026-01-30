@@ -114,6 +114,8 @@ const CodingAgent = (props: Props) => {
     let diffContent;
     if (toolName === "edit") {
       diffContent = session.computeEditDiff(input as ToolInputMap["edit"]);
+    } else if (toolName === "write") {
+      diffContent = session.computeWriteDiff(input as ToolInputMap["write"]);
     }
     return (
       <>

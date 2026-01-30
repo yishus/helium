@@ -5,7 +5,7 @@ import EventEmitter from "events";
 import { type MessageDelta } from "./ai";
 import { Agent } from "./agent";
 import { toolUseDescription, type ToolInputMap, type ToolName } from "./tools";
-import { generateEditDiff } from "./helper";
+import { generateEditDiff, generateWriteDiff } from "./helper";
 import { isErrnoException } from "./type_helper";
 import { TokenCostHelper } from "./token-cost";
 
@@ -111,5 +111,10 @@ export class Session {
       input.old_string,
       input.new_string,
     );
+  }
+
+  computeWriteDiff(input: ToolInputMap["write"]): string {
+    const existingContent = this.memory[input.path] as string | undefined;
+    return generateWriteDiff(input.path, existingContent, input.content);
   }
 }

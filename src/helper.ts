@@ -51,6 +51,39 @@ export function generateEditDiff(
   return output.join("\n");
 }
 
+export function generateWriteDiff(
+  filePath: string,
+  existingContent: string | undefined,
+  newContent: string
+): string {
+  const oldLines = existingContent ? existingContent.split("\n") : [];
+  const newLines = newContent.split("\n");
+
+  const diffOps = computeDiffOps(oldLines, newLines);
+  const hunks = buildHunks(diffOps, CONTEXT_LINES);
+
+  if (hunks.length === 0) {
+    return "";
+  }
+
+  const output: string[] = [];
+  if (existingContent === undefined) {
+    output.push(`--- /dev/null`);
+  } else {
+    output.push(`--- a/${filePath}`);
+  }
+  output.push(`+++ b/${filePath}`);
+
+  for (const hunk of hunks) {
+    output.push(
+      `@@ -${hunk.oldStart},${hunk.oldCount} +${hunk.newStart},${hunk.newCount} @@`
+    );
+    output.push(...hunk.lines);
+  }
+
+  return output.join("\n");
+}
+
 function computeDiffOps(oldLines: string[], newLines: string[]): DiffOp[] {
   const lcs = longestCommonSubsequence(oldLines, newLines);
   const ops: DiffOp[] = [];
