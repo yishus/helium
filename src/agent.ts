@@ -12,10 +12,12 @@ interface StreamOptions {
   canUseTool?: (name: string, input: unknown) => Promise<boolean>;
   emitMessage?: (message: string) => void;
   saveToSessionMemory?: (key: string, value: unknown) => void;
+  updateTokenUsage?: (input_tokens: number, output_tokens: number) => void;
 }
 
 export class Agent {
   private context: MessageParam[] = [];
+  totalTokensUsed = 0;
 
   constructor(
     public systemPrompt?: string,
@@ -23,7 +25,8 @@ export class Agent {
   ) {}
 
   async *stream(input?: string, options?: StreamOptions) {
-    const { canUseTool, emitMessage, saveToSessionMemory } = options || {};
+    const { canUseTool, emitMessage, saveToSessionMemory, updateTokenUsage } =
+      options || {};
     if (this.context.length === 0 && this.systemReminderStart) {
       this.context.push({
         role: "user",
@@ -51,7 +54,9 @@ export class Agent {
         yield event;
       }
 
-      const message = await fullMessage();
+      const { message, usage } = await fullMessage();
+      this.totalTokensUsed += usage.input_tokens + usage.output_tokens;
+      updateTokenUsage?.(usage.input_tokens, usage.output_tokens);
       this.context.push(message);
       if (message.content.every((c) => c.type !== "tool_use")) {
         break;
@@ -69,11 +74,11 @@ export class Agent {
   }
 
   async prompt(input: string) {
-    const response = await AI.prompt(Provider.Anthropic, [
+    const { message } = await AI.prompt(Provider.Anthropic, [
       ...this.context,
       this.nextMessage(input),
     ]);
-    return { response, text: this.textResponse(response) };
+    return { message, text: this.textResponse(message) };
   }
 
   nextMessage(input: string) {

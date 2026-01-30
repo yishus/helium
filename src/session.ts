@@ -7,6 +7,7 @@ import { Agent } from "./agent";
 import { toolUseDescription, type ToolInputMap, type ToolName } from "./tools";
 import { generateEditDiff } from "./helper";
 import { isErrnoException } from "./type_helper";
+import { TokenCostHelper } from "./token-cost";
 
 export interface UIMessage {
   role: "user" | "assistant";
@@ -58,6 +59,7 @@ export class Session {
       canUseTool: this.handleToolUseRequest.bind(this),
       emitMessage: this.handleEmitMessage.bind(this),
       saveToSessionMemory: this.handleSaveToSessionMemory.bind(this),
+      updateTokenUsage: this.handleTokenUsage.bind(this),
     });
     for await (const event of stream) {
       this.processDelta(event);
@@ -81,6 +83,14 @@ export class Session {
 
   handleSaveToSessionMemory(key: string, value: unknown) {
     this.memory[key] = value;
+  }
+
+  handleTokenUsage(input_tokens: number, output_tokens: number) {
+    this.eventEmitter.emit("token_usage_update", {
+      cost: TokenCostHelper.calculateCost(input_tokens, output_tokens)
+        .totalCost,
+      token_count: input_tokens + output_tokens,
+    });
   }
 
   processDelta(delta: MessageDelta) {

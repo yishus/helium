@@ -42,6 +42,14 @@ interface MessageToolUseContent {
 
 type ContentBlock = MessageTextContent | MessageToolUseContent;
 
+export interface MessageResponse {
+  message: Message;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+  };
+}
+
 export interface Message {
   role: "user" | "assistant";
   content: ContentBlock[];

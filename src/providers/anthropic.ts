@@ -5,7 +5,7 @@ import type {
   RawMessageStreamEvent,
 } from "@anthropic-ai/sdk/resources/messages";
 
-import type { Message, MessageParam, MessageDelta } from "../ai";
+import type { MessageResponse, MessageParam, MessageDelta } from "../ai";
 import type { Tool } from "../tools";
 
 export interface AnthropicStreamOptions {
@@ -31,7 +31,7 @@ export namespace AnthropicProvider {
       model: "claude-sonnet-4-5-20250929",
     });
 
-    return anthropic_message_to_message(response);
+    return anthropic_message_to_message_response(response);
   };
 
   export const stream = (
@@ -54,7 +54,7 @@ export namespace AnthropicProvider {
     return {
       fullMessage: async function () {
         const message: AnthropicMessage = await stream.finalMessage();
-        return anthropic_message_to_message(message);
+        return anthropic_message_to_message_response(message);
       },
       streamText: async function* () {
         for await (const event of stream) {
@@ -96,12 +96,20 @@ export namespace AnthropicProvider {
     };
   };
 
-  const anthropic_message_to_message = (message: AnthropicMessage): Message => {
+  const anthropic_message_to_message_response = (
+    message: AnthropicMessage,
+  ): MessageResponse => {
     return {
-      role: message.role,
-      content: message.content.filter(
-        (c) => c.type === "text" || c.type === "tool_use",
-      ),
+      message: {
+        role: message.role,
+        content: message.content.filter(
+          (c) => c.type === "text" || c.type === "tool_use",
+        ),
+      },
+      usage: {
+        input_tokens: message.usage.input_tokens || 0,
+        output_tokens: message.usage.output_tokens || 0,
+      },
     };
   };
 }

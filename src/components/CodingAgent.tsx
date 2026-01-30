@@ -26,6 +26,8 @@ const CodingAgent = (props: Props) => {
   const [messages, setMessages] = useState<UIMessage[]>([
     { role: "user", text: userPrompt },
   ]);
+  const [tokenCost, setTokenCost] = useState(0);
+  const [tokenUsage, setTokenUsage] = useState(0);
   const [showToolUseRequest, setShowToolUseRequest] = useState(false);
   const toolUseRequestRef = useRef<ToolUseRequest | null>(null);
   const selectRef = useRef<SelectRenderable>(null);
@@ -63,6 +65,11 @@ const CodingAgent = (props: Props) => {
 
         return prevMessages;
       });
+    });
+
+    session.eventEmitter.on("token_usage_update", (event) => {
+      setTokenCost(event.cost);
+      setTokenUsage(event.token_count);
     });
   }, []);
 
@@ -133,13 +140,20 @@ const CodingAgent = (props: Props) => {
   return (
     <box style={{ flexDirection: "row", width: "100%", height: "100%" }}>
       <box style={{ width: "75%", border: true, flexDirection: "column" }}>
-        <scrollbox style={{ flexGrow: 1 }}>
+        <scrollbox
+          style={{ flexGrow: 1 }}
+          stickyScroll={true}
+          stickyStart="bottom"
+        >
           {messages.map(renderMessage)}
           {renderToolUseRequest()}
         </scrollbox>
         <ChatTextbox onSubmit={handleSubmit} minHeight={3} />
       </box>
-      <box style={{ width: "25%", border: true }}></box>
+      <box style={{ width: "25%", border: true }}>
+        <text>Tokens used: {tokenUsage}</text>
+        <text>Cost: ${tokenCost}</text>
+      </box>
     </box>
   );
 };
