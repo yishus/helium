@@ -84,7 +84,7 @@ const CodingAgent = (props: Props) => {
     setCurrentModel(model);
     setCurrentProvider(provider);
     const modelInfo = ALL_MODELS.find((m) => m.id === model);
-    const providerName = provider === Provider.Anthropic ? "Anthropic" : "Google";
+    const providerName = provider === Provider.Anthropic ? "Anthropic" : provider === Provider.OpenAI ? "OpenAI" : "Google";
     const modelName = modelInfo?.name ?? model;
     setMessages((prev) => [
       ...prev,
@@ -112,7 +112,7 @@ const CodingAgent = (props: Props) => {
   const currentModelName =
     ALL_MODELS.find((m) => m.id === currentModel)?.name ?? "Unknown";
   const currentProviderName =
-    currentProvider === Provider.Anthropic ? "Anthropic" : "Google";
+    currentProvider === Provider.Anthropic ? "Anthropic" : currentProvider === Provider.OpenAI ? "OpenAI" : "Google";
 
   return (
     <box style={{ flexDirection: "row", width: "100%", height: "100%" }}>

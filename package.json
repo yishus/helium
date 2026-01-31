@@ -19,6 +19,7 @@
     "@google/genai": "^1.38.0",
     "@opentui/core": "^0.1.75",
     "@opentui/react": "^0.1.75",
+    "openai": "^6.17.0",
     "react": "^19.1.1",
     "turndown": "^7.2.2",
     "typebox": "^1.0.76"

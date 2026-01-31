@@ -3,8 +3,19 @@ import type { SelectRenderable, SelectOption } from "@opentui/core";
 import { useKeyboard } from "@opentui/react";
 import { ALL_MODELS, Provider, type ModelId } from "../session";
 
+const providerDisplayName = (provider: Provider): string => {
+  switch (provider) {
+    case Provider.Anthropic:
+      return "Anthropic";
+    case Provider.Google:
+      return "Google";
+    case Provider.OpenAI:
+      return "OpenAI";
+  }
+};
+
 const modelOptions: SelectOption[] = ALL_MODELS.map((m) => ({
-  name: `${m.name} (${m.provider === Provider.Anthropic ? "Anthropic" : "Google"})`,
+  name: `${m.name} (${providerDisplayName(m.provider)})`,
   description: m.id,
   value: `${m.provider}:${m.id}`,
 }));

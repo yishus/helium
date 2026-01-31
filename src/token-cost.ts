@@ -8,30 +8,29 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 3.0,
     outputPerMillion: 15.0,
   },
-  "claude-sonnet-4-20250514": {
-    inputPerMillion: 3.0,
-    outputPerMillion: 15.0,
-  },
   "claude-opus-4-20250514": {
     inputPerMillion: 15.0,
     outputPerMillion: 75.0,
   },
-  "claude-3-5-sonnet-20241022": {
-    inputPerMillion: 3.0,
-    outputPerMillion: 15.0,
-  },
-  "claude-3-5-haiku-20241022": {
-    inputPerMillion: 0.8,
-    outputPerMillion: 4.0,
-  },
-  // Google Gemini models
   "gemini-3-flash-preview": {
-    inputPerMillion: 0,
-    outputPerMillion: 0,
+    inputPerMillion: 0.5,
+    outputPerMillion: 3,
+  },
+  "gemini-3-pro-preview": {
+    inputPerMillion: 2,
+    outputPerMillion: 12,
   },
   "gemini-2.5-pro": {
-    inputPerMillion: 0,
-    outputPerMillion: 0,
+    inputPerMillion: 1.25,
+    outputPerMillion: 10,
+  },
+  "gpt-5.2-codex": {
+    inputPerMillion: 1.75,
+    outputPerMillion: 14,
+  },
+  "gpt-5.1-codex-mini": {
+    inputPerMillion: 0.25,
+    outputPerMillion: 2,
   },
 };
 

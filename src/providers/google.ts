@@ -3,8 +3,7 @@ import {
   type Content,
   type Part,
   type FunctionDeclaration,
-  type GenerateContentResponse,
-  type FunctionCall,
+  type GenerateContentResponseUsageMetadata,
   Type,
 } from "@google/genai";
 
@@ -16,12 +15,16 @@ import type {
 } from "../ai";
 import type { Tool } from "../tools";
 
-export type GoogleModelId = "gemini-3-flash-preview" | "gemini-2.5-pro";
+export type GoogleModelId =
+  | "gemini-3-flash-preview"
+  | "gemini-3-pro-preview"
+  | "gemini-2.5-pro";
 
 export const DEFAULT_GOOGLE_MODEL: GoogleModelId = "gemini-3-flash-preview";
 
 export const AVAILABLE_GOOGLE_MODELS: { id: GoogleModelId; name: string }[] = [
   { id: "gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },
+  { id: "gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
   { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro" },
 ];
 
@@ -54,7 +57,8 @@ export namespace GoogleProvider {
       },
     });
 
-    return google_response_to_message_response(response);
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    return google_response_to_message_response(parts, response.usageMetadata);
   };
 
   export const stream = (
@@ -85,8 +89,8 @@ export namespace GoogleProvider {
     });
 
     // Shared state accumulated by streamText
-    let accumulatedText = "";
-    let accumulatedFunctionCalls: FunctionCall[] = [];
+    let accumulatedParts: Part[] = [];
+    let usageMetadata: GenerateContentResponseUsageMetadata = {};
     let streamComplete: Promise<void>;
     let resolveStreamComplete: () => void;
 
@@ -99,10 +103,10 @@ export namespace GoogleProvider {
       fullMessage: async function () {
         // Wait for streamText to finish accumulating data
         await streamComplete;
-        return google_response_to_message_response({
-          text: accumulatedText,
-          functionCalls: accumulatedFunctionCalls,
-        } as GenerateContentResponse);
+        return google_response_to_message_response(
+          accumulatedParts,
+          usageMetadata,
+        );
       },
       streamText: async function* () {
         let isFirst = true;
@@ -114,15 +118,12 @@ export namespace GoogleProvider {
             isFirst = false;
           }
 
-          // Accumulate data into shared state
-          const chunkText = chunk.text || "";
-          const chunkFunctionCalls = chunk.functionCalls || [];
-          accumulatedText += chunkText;
-          (accumulatedFunctionCalls = accumulatedFunctionCalls).concat(
-            chunkFunctionCalls,
+          accumulatedParts.push(
+            ...(chunk.candidates?.[0]?.content?.parts || []),
           );
+          usageMetadata = chunk.usageMetadata || {};
 
-          yield { type: "text_update", text: chunkText };
+          yield { type: "text_update", text: chunk.text || "" } as MessageDelta;
         }
 
         // Signal that streaming is complete
@@ -182,13 +183,18 @@ export namespace GoogleProvider {
 
     for (const content of message.content) {
       if (content.type === "text") {
-        parts.push({ text: content.text });
+        parts.push({
+          text: content.text,
+          thoughtSignature: content.thoughtSignature,
+        });
       } else if (content.type === "tool_use") {
         parts.push({
           functionCall: {
             name: content.name,
+            id: content.id,
             args: content.input as Record<string, unknown>,
           },
+          thoughtSignature: content.thoughtSignature,
         });
       } else if (content.type === "tool_result") {
         const textContent = content.content
@@ -197,7 +203,8 @@ export namespace GoogleProvider {
           .join("\n");
         parts.push({
           functionResponse: {
-            name: content.tool_use_id,
+            name: content.name,
+            id: content.tool_use_id,
             response: { result: textContent },
           },
         });
@@ -211,31 +218,32 @@ export namespace GoogleProvider {
   };
 
   const google_response_to_message_response = (
-    response: GenerateContentResponse,
+    parts: Part[],
+    usage: GenerateContentResponseUsageMetadata = {},
   ): MessageResponse => {
     const content: ContentBlock[] = [];
 
-    console.log("Google Response:", response);
+    for (const part of parts) {
+      if (part.text) {
+        content.push({
+          type: "text",
+          text: part.text,
+          thoughtSignature: part.thoughtSignature,
+        });
+      }
 
-    if (response.text) {
-      content.push({ type: "text", text: response.text });
-    }
-
-    if (response.functionCalls) {
-      for (const funcCall of response.functionCalls) {
-        if (!funcCall.args || !funcCall.name || !funcCall.id) continue;
+      if (part.functionCall) {
+        const { args, id, name } = part.functionCall;
+        if (!args || !name) continue;
         content.push({
           type: "tool_use",
-          id: funcCall.id,
-          name: funcCall.name,
-          input: funcCall.args,
+          id,
+          name,
+          input: args,
+          thoughtSignature: part.thoughtSignature,
         });
       }
     }
-
-    const usage = response.usageMetadata || {};
-
-    console.log(content);
 
     return {
       message: {

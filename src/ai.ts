@@ -3,28 +3,29 @@ import {
   type ModelId as AnthropicModelId,
 } from "./providers/anthropic";
 import { GoogleProvider, type GoogleModelId } from "./providers/google";
+import { OpenAIProvider, type OpenAIModelId } from "./providers/openai";
 import { AuthStorage } from "./auth-storage";
 import { Provider } from "./providers";
 import tools from "./tools";
 
 export type { ModelId as AnthropicModelId } from "./providers/anthropic";
 export type { GoogleModelId } from "./providers/google";
+export type { OpenAIModelId } from "./providers/openai";
 export { DEFAULT_MODEL, AVAILABLE_MODELS } from "./providers/anthropic";
 export {
   DEFAULT_GOOGLE_MODEL,
   AVAILABLE_GOOGLE_MODELS,
 } from "./providers/google";
+export {
+  DEFAULT_OPENAI_MODEL,
+  AVAILABLE_OPENAI_MODELS,
+} from "./providers/openai";
 
-export type ModelId = AnthropicModelId | GoogleModelId;
+export type ModelId = AnthropicModelId | GoogleModelId | OpenAIModelId;
 
 interface MessageStartDelta {
   type: "message_start";
   role: "user" | "assistant";
-}
-
-interface TextStartDelta {
-  type: "text_start";
-  text: string;
 }
 
 interface TextUpdateDelta {
@@ -36,22 +37,20 @@ interface IgnoredDelta {
   type: "ignored";
 }
 
-export type MessageDelta =
-  | MessageStartDelta
-  | TextStartDelta
-  | TextUpdateDelta
-  | IgnoredDelta;
+export type MessageDelta = MessageStartDelta | TextUpdateDelta | IgnoredDelta;
 
 interface MessageTextContent {
   type: "text";
   text: string;
+  thoughtSignature?: string;
 }
 
 interface MessageToolUseContent {
   type: "tool_use";
-  id: string;
+  id?: string;
   input: unknown;
   name: string;
+  thoughtSignature?: string;
 }
 
 export type ContentBlock = MessageTextContent | MessageToolUseContent;
@@ -71,7 +70,8 @@ export interface Message {
 
 interface MessageToolResultContent {
   type: "tool_result";
-  tool_use_id: string;
+  tool_use_id?: string;
+  name?: string;
   content: MessageTextContent[];
   isError?: boolean;
 }
@@ -108,6 +108,15 @@ export namespace AI {
         });
         return response;
       }
+      case Provider.OpenAI: {
+        const apiKey = authStorage.get(Provider.OpenAI);
+        const response = OpenAIProvider.prompt(input, {
+          apiKey,
+          tools: Object.values(tools),
+          model: model as OpenAIModelId,
+        });
+        return response;
+      }
     }
   };
 
@@ -137,6 +146,16 @@ export namespace AI {
           systemPrompt,
           tools: Object.values(tools),
           model: model as GoogleModelId,
+        });
+        return stream;
+      }
+      case Provider.OpenAI: {
+        const apiKey = authStorage.get(Provider.OpenAI);
+        const stream = OpenAIProvider.stream(input, {
+          apiKey,
+          systemPrompt,
+          tools: Object.values(tools),
+          model: model as OpenAIModelId,
         });
         return stream;
       }

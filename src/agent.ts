@@ -1,4 +1,10 @@
-import { AI, type Message, type MessageParam, type ModelId, DEFAULT_MODEL } from "./ai";
+import {
+  AI,
+  type Message,
+  type MessageParam,
+  type ModelId,
+  DEFAULT_MODEL,
+} from "./ai";
 import { Provider } from "./providers";
 import tools, {
   callTool,
@@ -120,6 +126,7 @@ export class Agent {
         if (interrupted) {
           responses.push({
             id,
+            name,
             content: [
               {
                 type: "text" as const,
@@ -138,6 +145,7 @@ export class Agent {
             );
             responses.push({
               id,
+              name,
               content: [
                 {
                   type: "text" as const,
@@ -165,6 +173,7 @@ export class Agent {
           }
           responses.push({
             id,
+            name,
             content: [{ type: "text" as const, text: result }],
           });
         }
@@ -176,6 +185,7 @@ export class Agent {
       content: responses.map((res) => ({
         type: "tool_result",
         tool_use_id: res.id,
+        name: res.name,
         content: res.content,
       })),
     });

@@ -9,6 +9,8 @@ import {
   AVAILABLE_MODELS,
   DEFAULT_GOOGLE_MODEL,
   AVAILABLE_GOOGLE_MODELS,
+  DEFAULT_OPENAI_MODEL,
+  AVAILABLE_OPENAI_MODELS,
 } from "./ai";
 import { Agent } from "./agent";
 import { Provider } from "./providers";
@@ -19,7 +21,14 @@ import { TokenCostHelper } from "./token-cost";
 
 export type { ModelId };
 export { Provider };
-export { DEFAULT_MODEL, AVAILABLE_MODELS, DEFAULT_GOOGLE_MODEL, AVAILABLE_GOOGLE_MODELS };
+export {
+  DEFAULT_MODEL,
+  AVAILABLE_MODELS,
+  DEFAULT_GOOGLE_MODEL,
+  AVAILABLE_GOOGLE_MODELS,
+  DEFAULT_OPENAI_MODEL,
+  AVAILABLE_OPENAI_MODELS,
+};
 
 export interface ProviderModel {
   id: ModelId;
@@ -30,6 +39,7 @@ export interface ProviderModel {
 export const ALL_MODELS: ProviderModel[] = [
   ...AVAILABLE_MODELS.map((m) => ({ ...m, provider: Provider.Anthropic })),
   ...AVAILABLE_GOOGLE_MODELS.map((m) => ({ ...m, provider: Provider.Google })),
+  ...AVAILABLE_OPENAI_MODELS.map((m) => ({ ...m, provider: Provider.OpenAI })),
 ];
 
 export interface UIMessage {
@@ -146,7 +156,7 @@ export class Session {
       this.eventEmitter.emit("message_start", { role: delta.role });
     }
 
-    if (delta.type == "text_start" || delta.type == "text_update") {
+    if (delta.type == "text_update") {
       this.eventEmitter.emit("message_update", { text: delta.text });
     }
   }
