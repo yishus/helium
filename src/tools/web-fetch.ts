@@ -2,7 +2,8 @@ import { Type, type Static } from "typebox";
 import turndown from "turndown";
 
 import { Agent } from "../agent";
-import type { Tool } from "./";
+import { SMALL_MODELS } from "../providers";
+import type { Tool, ToolConfig } from "./";
 
 const description = `
  - Fetches content from a specified URL and processes it using an AI model
@@ -30,8 +31,9 @@ const definition = {
   input_schema: webFetchSchema,
 };
 
-const callFunction = async (args: argsType) => {
+const callFunction = async (args: argsType, config: ToolConfig) => {
   const { url, prompt } = args;
+  const { provider } = config;
   const response = await fetch(url);
   if (response.redirected) {
     return `The URL was redirected to ${response.url}`;
@@ -40,7 +42,8 @@ const callFunction = async (args: argsType) => {
   } else {
     const td = new turndown();
     const markdown = td.turndown(response.text());
-    const agent = new Agent();
+    const model = SMALL_MODELS[provider];
+    const agent = new Agent(model, provider);
     const agentMessage = await agent.prompt(`${prompt}\n\n${markdown}`);
     return agentMessage.text;
   }

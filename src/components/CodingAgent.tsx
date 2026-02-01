@@ -3,16 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import {
   Session,
   type ToolUseRequest,
+  type AskUserQuestionRequest,
   type UIMessage,
   type ModelId,
+  type QuestionAnswer,
   ALL_MODELS,
   Provider,
 } from "../session";
 import ChatTextbox from "./ChatTextbox";
 import Message from "./Message";
 import ToolUseRequestDialog from "./ToolUseRequestDialog";
+import AskUserQuestionDialog from "./AskUserQuestionDialog";
 import ModelSelectorDialog from "./ModelSelectorDialog";
 import { THEME } from "../theme";
+import type { AskUserQuestionInput } from "../tools";
 
 interface Props {
   session: Session;
@@ -26,14 +30,19 @@ const CodingAgent = (props: Props) => {
   const [inputTokens, setInputTokens] = useState(0);
   const [outputTokens, setOutputTokens] = useState(0);
   const [showToolUseRequest, setShowToolUseRequest] = useState(false);
+  const [showAskUserQuestion, setShowAskUserQuestion] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [currentModel, setCurrentModel] = useState<ModelId>(session.getModel());
   const [currentProvider, setCurrentProvider] = useState<Provider>(
     session.getProvider(),
   );
   const toolUseRequestRef = useRef<ToolUseRequest | null>(null);
+  const askUserQuestionRef = useRef<AskUserQuestionInput | null>(null);
   const pendingApprovalRef = useRef<{
     resolve: (approved: boolean) => void;
+  } | null>(null);
+  const pendingAskUserQuestionRef = useRef<{
+    resolve: (answers: QuestionAnswer[]) => void;
   } | null>(null);
 
   useEffect(() => {
@@ -43,6 +52,17 @@ const CodingAgent = (props: Props) => {
 
       return new Promise<boolean>((resolve) => {
         pendingApprovalRef.current = { resolve };
+      });
+    };
+
+    session.askUserQuestionHandler = async (
+      request: AskUserQuestionRequest,
+    ) => {
+      askUserQuestionRef.current = request.input;
+      setShowAskUserQuestion(true);
+
+      return new Promise<QuestionAnswer[]>((resolve) => {
+        pendingAskUserQuestionRef.current = { resolve };
       });
     };
   }, []);
@@ -81,6 +101,18 @@ const CodingAgent = (props: Props) => {
     pendingApprovalRef.current?.resolve(approved);
     pendingApprovalRef.current = null;
     setShowToolUseRequest(false);
+  };
+
+  const handleAskUserQuestionSubmit = (answers: QuestionAnswer[]) => {
+    pendingAskUserQuestionRef.current?.resolve(answers);
+    pendingAskUserQuestionRef.current = null;
+    setShowAskUserQuestion(false);
+  };
+
+  const handleAskUserQuestionCancel = () => {
+    pendingAskUserQuestionRef.current?.resolve([]);
+    pendingAskUserQuestionRef.current = null;
+    setShowAskUserQuestion(false);
   };
 
   const handleModelSelect = (model: ModelId, provider: Provider) => {
@@ -145,6 +177,13 @@ const CodingAgent = (props: Props) => {
             request={toolUseRequestRef.current}
             session={session}
             onSelect={handleToolUseSelect}
+          />
+        )}
+        {showAskUserQuestion && askUserQuestionRef.current && (
+          <AskUserQuestionDialog
+            input={askUserQuestionRef.current}
+            onSubmit={handleAskUserQuestionSubmit}
+            onCancel={handleAskUserQuestionCancel}
           />
         )}
         {showModelSelector && (

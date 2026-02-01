@@ -1,10 +1,16 @@
 import type { Static, TSchema } from "typebox";
 
+import { Provider } from "../providers";
+import askUserQuestion from "./ask-user-question";
 import bash from "./bash";
 import edit from "./edit";
 import read from "./read";
 import webFetch from "./web-fetch";
 import write from "./write";
+
+export interface ToolConfig {
+  provider: Provider;
+}
 
 export interface Tool<T extends TSchema> {
   definition: {
@@ -12,10 +18,10 @@ export interface Tool<T extends TSchema> {
     description: string;
     input_schema: T;
   };
-  callFunction: (args: Static<T>) => Promise<string>;
+  callFunction: (args: Static<T>, config: ToolConfig) => Promise<string>;
 }
 
-const tools = { bash, edit, read, webFetch, write };
+const tools = { askUserQuestion, bash, edit, read, webFetch, write };
 
 export type ToolName = keyof typeof tools;
 
@@ -28,9 +34,10 @@ export type ToolInputMap = {
 export async function callTool<T extends ToolName>(
   name: T,
   input: ToolInputMap[T],
+  config: ToolConfig,
 ): Promise<string> {
   try {
-    return await tools[name].callFunction(input as never);
+    return await tools[name].callFunction(input as never, config);
   } catch (error) {
     if (error instanceof Error) {
       return `Error: ${error.message}`;
@@ -40,6 +47,7 @@ export async function callTool<T extends ToolName>(
 }
 
 export const requestToolUsePermission: Record<ToolName, boolean> = {
+  askUserQuestion: false, // Handled separately via askUserQuestionHandler
   bash: true,
   edit: true,
   read: false,
@@ -52,6 +60,10 @@ export const toolUseDescription = (
   input: unknown,
 ): string => {
   switch (toolName) {
+    case "askUserQuestion":
+      const askInput = input as ToolInputMap["askUserQuestion"];
+      const questionCount = askInput.questions.length;
+      return `${questionCount} question${questionCount > 1 ? "s" : ""}`;
     case "bash":
       const bashInput = input as ToolInputMap["bash"];
       return bashInput.command;
@@ -69,5 +81,11 @@ export const toolUseDescription = (
       return `file at path: ${writeInput.path}`;
   }
 };
+
+export type {
+  AskUserQuestionInput,
+  QuestionInput,
+  OptionInput,
+} from "./ask-user-question";
 
 export default tools;

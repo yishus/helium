@@ -13,11 +13,21 @@ import type {
 } from "../ai";
 import type { Tool } from "../tools";
 
-export type ModelId = "claude-sonnet-4-5-20250929" | "claude-opus-4-20250514";
+export type AnthropicModelId =
+  | "claude-sonnet-4-5-20250929"
+  | "claude-opus-4-20250514"
+  | "claude-haiku-4-5-20251001";
 
-export const DEFAULT_ANTHROPIC_MODEL: ModelId = "claude-sonnet-4-5-20250929";
+export const DEFAULT_ANTHROPIC_MODEL: AnthropicModelId =
+  "claude-sonnet-4-5-20250929";
 
-export const AVAILABLE_ANTHROPIC_MODELS: { id: ModelId; name: string }[] = [
+export const SMALL_ANTHROPIC_MODEL: AnthropicModelId =
+  "claude-haiku-4-5-20251001";
+
+export const AVAILABLE_ANTHROPIC_MODELS: {
+  id: AnthropicModelId;
+  name: string;
+}[] = [
   { id: "claude-sonnet-4-5-20250929", name: "Sonnet" },
   { id: "claude-opus-4-20250514", name: "Opus" },
 ];
@@ -26,7 +36,7 @@ export interface AnthropicStreamOptions {
   apiKey?: string;
   tools?: Tool<any>[];
   systemPrompt?: string;
-  model?: ModelId;
+  model?: AnthropicModelId;
 }
 
 export namespace AnthropicProvider {

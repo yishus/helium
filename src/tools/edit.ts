@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "fs/promises";
 import { Type, type Static } from "typebox";
 
-import type { Tool } from "./";
+import type { Tool, ToolConfig } from "./";
 
 const editSchema = Type.Object({
   path: Type.String({
@@ -29,7 +29,7 @@ const definition = {
   input_schema: editSchema,
 };
 
-const callFunction = async (args: argsType) => {
+const callFunction = async (args: argsType, _config: ToolConfig) => {
   const { path, old_string, new_string, replace_all = false } = args;
 
   const content = await readFile(path, { encoding: "utf8" });

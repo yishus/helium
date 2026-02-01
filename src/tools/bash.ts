@@ -1,6 +1,6 @@
 import { Type, type Static } from "typebox";
 
-import type { Tool } from "./";
+import type { Tool, ToolConfig } from "./";
 
 const bashSchema = Type.Object({
   command: Type.String({
@@ -22,7 +22,7 @@ const definition = {
   input_schema: bashSchema,
 };
 
-const callFunction = async (args: argsType) => {
+const callFunction = async (args: argsType, _config: ToolConfig) => {
   const { command, timeout = 30000 } = args;
 
   const proc = Bun.spawn(["bash", "-c", command], {

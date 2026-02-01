@@ -1,6 +1,6 @@
 import {
   AnthropicProvider,
-  type ModelId as AnthropicModelId,
+  type AnthropicModelId,
 } from "./providers/anthropic";
 import { GoogleProvider, type GoogleModelId } from "./providers/google";
 import { OpenAIProvider, type OpenAIModelId } from "./providers/openai";
@@ -8,9 +8,6 @@ import { AuthStorage } from "./auth-storage";
 import { Provider } from "./providers";
 import tools from "./tools";
 
-export type { ModelId as AnthropicModelId } from "./providers/anthropic";
-export type { GoogleModelId } from "./providers/google";
-export type { OpenAIModelId } from "./providers/openai";
 export {
   AVAILABLE_ANTHROPIC_MODELS,
   DEFAULT_ANTHROPIC_MODEL,

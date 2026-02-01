@@ -14,9 +14,11 @@ import type {
 } from "../ai";
 import type { Tool } from "../tools";
 
-export type OpenAIModelId = "gpt-5.2-codex" | "gpt-5.1-codex-mini";
+export type OpenAIModelId = "gpt-5.2-codex" | "gpt-5.1-codex-mini" | "gpt-4o-mini";
 
 export const DEFAULT_OPENAI_MODEL: OpenAIModelId = "gpt-5.1-codex-mini";
+
+export const SMALL_OPENAI_MODEL: OpenAIModelId = "gpt-4o-mini";
 
 export const AVAILABLE_OPENAI_MODELS: { id: OpenAIModelId; name: string }[] = [
   { id: "gpt-5.2-codex", name: "GPT-5.2 Codex" },

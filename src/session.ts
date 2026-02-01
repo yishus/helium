@@ -14,7 +14,12 @@ import {
 } from "./ai";
 import { Agent } from "./agent";
 import { Provider } from "./providers";
-import { toolUseDescription, type ToolInputMap, type ToolName } from "./tools";
+import {
+  toolUseDescription,
+  type ToolInputMap,
+  type ToolName,
+  type AskUserQuestionInput,
+} from "./tools";
 import { generateEditDiff, generateWriteDiff } from "./helper";
 import { isErrnoException } from "./type-helper";
 import { TokenCostHelper } from "./token-cost";
@@ -48,6 +53,16 @@ export interface ToolUseRequest {
   input: unknown;
 }
 
+export interface AskUserQuestionRequest {
+  input: AskUserQuestionInput;
+}
+
+export interface QuestionAnswer {
+  question: string;
+  selectedLabels: string[];
+  customText?: string;
+}
+
 const SYSTEM_PROMPT_PATH = join(__dirname, "prompts/system_workflow.md");
 
 export class Session {
@@ -56,6 +71,9 @@ export class Session {
   provider: Provider = Provider.Anthropic;
   eventEmitter = new EventEmitter();
   canUseToolHandler?: (request: ToolUseRequest) => Promise<boolean>;
+  askUserQuestionHandler?: (
+    request: AskUserQuestionRequest,
+  ) => Promise<QuestionAnswer[]>;
   memory: { [key: string]: any } = {};
   totalCost = 0;
 
@@ -123,6 +141,7 @@ export class Session {
   async prompt(input: string) {
     const stream = this.agent.stream(input, {
       canUseTool: this.handleToolUseRequest.bind(this),
+      askUserQuestion: this.handleAskUserQuestion.bind(this),
       emitMessage: this.handleEmitMessage.bind(this),
       saveToSessionMemory: this.handleSaveToSessionMemory.bind(this),
       updateTokenUsage: this.handleTokenUsage.bind(this),
@@ -140,6 +159,15 @@ export class Session {
       input,
     });
     return canUse || false;
+  }
+
+  async handleAskUserQuestion(
+    input: AskUserQuestionInput,
+  ): Promise<QuestionAnswer[]> {
+    if (!this.askUserQuestionHandler) {
+      return [];
+    }
+    return this.askUserQuestionHandler({ input });
   }
 
   handleEmitMessage(message: string) {

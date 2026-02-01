@@ -1,15 +1,18 @@
 import { AI, type Message, type MessageParam, type ModelId } from "./ai";
 import { Provider } from "./providers";
+import type { QuestionAnswer } from "./session";
 import tools, {
   callTool,
   requestToolUsePermission,
   toolUseDescription,
   type ToolInputMap,
   type ToolName,
+  type AskUserQuestionInput,
 } from "./tools";
 
 interface StreamOptions {
   canUseTool?: (name: string, input: unknown) => Promise<boolean>;
+  askUserQuestion?: (input: AskUserQuestionInput) => Promise<QuestionAnswer[]>;
   emitMessage?: (message: string) => void;
   saveToSessionMemory?: (key: string, value: unknown) => void;
   updateTokenUsage?: (input_tokens: number, output_tokens: number) => void;
@@ -26,8 +29,13 @@ export class Agent {
   ) {}
 
   async *stream(input?: string, options?: StreamOptions) {
-    const { canUseTool, emitMessage, saveToSessionMemory, updateTokenUsage } =
-      options || {};
+    const {
+      canUseTool,
+      askUserQuestion,
+      emitMessage,
+      saveToSessionMemory,
+      updateTokenUsage,
+    } = options || {};
     if (this.context.length === 0 && this.systemReminderStart) {
       this.context.push({
         role: "user",
@@ -57,6 +65,7 @@ export class Agent {
       }
 
       const { message, usage } = await fullMessage();
+      console.log(message);
       updateTokenUsage?.(usage.input_tokens, usage.output_tokens);
       this.context.push(message);
       if (message.content.every((c) => c.type !== "tool_use")) {
@@ -65,6 +74,7 @@ export class Agent {
       const success = await this.runToolCalls(
         message,
         canUseTool,
+        askUserQuestion,
         emitMessage,
         saveToSessionMemory,
       );
@@ -103,9 +113,38 @@ export class Agent {
     }
   }
 
+  formatQuestionAnswers(answers: QuestionAnswer[]): string {
+    if (answers.length === 0) {
+      return "User cancelled the question dialog.";
+    }
+
+    return answers
+      .map((answer, idx) => {
+        const parts: string[] = [`Question ${idx + 1}: ${answer.question}`];
+
+        if (answer.selectedLabels.length > 0) {
+          parts.push(`Selected: ${answer.selectedLabels.join(", ")}`);
+        }
+
+        if (answer.customText) {
+          parts.push(`Custom response: ${answer.customText}`);
+        }
+
+        if (answer.selectedLabels.length === 0 && !answer.customText) {
+          parts.push("No selection made.");
+        }
+
+        return parts.join("\n");
+      })
+      .join("\n\n");
+  }
+
   async runToolCalls(
     message: Message,
     canUseTool?: (name: string, input: unknown) => Promise<boolean>,
+    askUserQuestion?: (
+      input: AskUserQuestionInput,
+    ) => Promise<QuestionAnswer[]>,
     emitMessage?: (message: string) => void,
     saveToSessionMemory?: (key: string, value: unknown) => void,
   ): Promise<boolean> {
@@ -155,9 +194,24 @@ export class Agent {
           emitMessage?.(
             `${name} ${toolUseDescription(name as ToolName, input)}`,
           );
+
+          // Special handling for askUserQuestion tool
+          if (name === "askUserQuestion" && askUserQuestion) {
+            const askInput = input as AskUserQuestionInput;
+            const answers = await askUserQuestion(askInput);
+            const result = this.formatQuestionAnswers(answers);
+            responses.push({
+              id,
+              name,
+              content: [{ type: "text" as const, text: result }],
+            });
+            continue;
+          }
+
           const result = await callTool(
             name as ToolName,
             input as ToolInputMap[ToolName],
+            { provider: this.provider },
           );
           if (name === "read") {
             const readInput = input as ToolInputMap["read"];
@@ -167,6 +221,17 @@ export class Agent {
             id,
             name,
             content: [{ type: "text" as const, text: result }],
+          });
+        } else {
+          responses.push({
+            id,
+            name,
+            content: [
+              {
+                type: "text" as const,
+                text: "Tool not found.",
+              },
+            ],
           });
         }
       }

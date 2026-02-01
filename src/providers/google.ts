@@ -17,9 +17,12 @@ import type { Tool } from "../tools";
 export type GoogleModelId =
   | "gemini-3-flash-preview"
   | "gemini-3-pro-preview"
-  | "gemini-2.5-pro";
+  | "gemini-2.5-pro"
+  | "gemini-2.0-flash";
 
 export const DEFAULT_GOOGLE_MODEL: GoogleModelId = "gemini-3-flash-preview";
+
+export const SMALL_GOOGLE_MODEL: GoogleModelId = "gemini-2.0-flash";
 
 export const AVAILABLE_GOOGLE_MODELS: { id: GoogleModelId; name: string }[] = [
   { id: "gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },

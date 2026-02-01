@@ -3,7 +3,7 @@ import { readFile, stat } from "fs/promises";
 import { createInterface } from "readline/promises";
 import { Type, type Static } from "typebox";
 
-import type { Tool } from "./";
+import type { Tool, ToolConfig } from "./";
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
@@ -34,7 +34,7 @@ const definition = {
   input_schema: readSchema,
 };
 
-const callFunction = async (args: argsType) => {
+const callFunction = async (args: argsType, _config: ToolConfig) => {
   const { path, offset, limit } = args;
   if (offset == null && limit == null) {
     const buffer = await readFile(path, { encoding: "utf8" });

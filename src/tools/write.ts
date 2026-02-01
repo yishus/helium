@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import { dirname } from "path";
 import { Type, type Static } from "typebox";
 
-import type { Tool } from "./";
+import type { Tool, ToolConfig } from "./";
 
 const writeSchema = Type.Object({
   path: Type.String({
@@ -22,7 +22,7 @@ const definition = {
   input_schema: writeSchema,
 };
 
-const callFunction = async (args: argsType) => {
+const callFunction = async (args: argsType, _config: ToolConfig) => {
   const { path, content } = args;
 
   // Ensure parent directory exists
