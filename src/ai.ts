@@ -5,7 +5,7 @@ import {
 import { GoogleProvider, type GoogleModelId } from "./providers/google";
 import { OpenAIProvider, type OpenAIModelId } from "./providers/openai";
 import { AuthStorage } from "./auth-storage";
-import { Provider } from "./providers";
+import { Provider, SMALL_MODELS } from "./providers";
 import tools from "./tools";
 
 export {
@@ -44,13 +44,8 @@ export interface TextContent {
 
 export interface ToolUseContent {
   type: "tool_use";
-  /**
-   * Unique identifier for this tool use.
-   * - Anthropic: Always present
-   * - OpenAI: Always present (call_id)
-   * - Google: May be undefined; use `name` for correlation instead
-   */
-  id?: string;
+  /** Unique identifier for this tool use. */
+  id: string;
   /** Name of the tool being called */
   name: string;
   /** Input arguments for the tool */
@@ -61,13 +56,9 @@ export interface ToolUseContent {
 
 export interface ToolResultContent {
   type: "tool_result";
-  /**
-   * ID of the tool_use this is a result for.
-   * Should match the `id` from the corresponding ToolUseContent when available.
-   * For providers like Google that may not provide IDs, use `name` for correlation.
-   */
-  tool_use_id?: string;
-  /** Name of the tool - used for correlation when tool_use_id is unavailable */
+  /** ID of the tool_use this is a result for. */
+  tool_use_id: string;
+  /** Name of the tool */
   name: string;
   /** Result content */
   content: TextContent[];
@@ -135,6 +126,33 @@ export namespace AI {
         return response;
       }
     }
+  };
+
+  /**
+   * Summarize text using the small model for the given provider.
+   * Used for context compression when conversation gets too long.
+   */
+  export const summarize = async (
+    provider: Provider,
+    text: string,
+  ): Promise<string> => {
+    const smallModel = SMALL_MODELS[provider];
+    const input: MessageParam[] = [
+      {
+        role: "user",
+        content: [{ type: "text", text }],
+      },
+    ];
+
+    const response = await prompt(provider, input, smallModel);
+
+    // Extract text from response
+    for (const block of response.message.content) {
+      if (block.type === "text") {
+        return block.text;
+      }
+    }
+    return "";
   };
 
   export const stream = (

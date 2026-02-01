@@ -209,7 +209,7 @@ export namespace GoogleProvider {
         if (!args || !name) continue;
         content.push({
           type: "tool_use",
-          id,
+          id: id ?? crypto.randomUUID(),
           name,
           input: args,
           metadata: part.thoughtSignature

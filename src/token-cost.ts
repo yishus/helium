@@ -12,6 +12,10 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 15.0,
     outputPerMillion: 75.0,
   },
+  "claude-haiku-4-5-20251001": {
+    inputPerMillion: 0.8,
+    outputPerMillion: 4.0,
+  },
   "gemini-3-flash-preview": {
     inputPerMillion: 0.5,
     outputPerMillion: 3,
@@ -24,6 +28,10 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
     inputPerMillion: 1.25,
     outputPerMillion: 10,
   },
+  "gemini-2.0-flash": {
+    inputPerMillion: 0.1,
+    outputPerMillion: 0.4,
+  },
   "gpt-5.2-codex": {
     inputPerMillion: 1.75,
     outputPerMillion: 14,
@@ -31,6 +39,10 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
   "gpt-5.1-codex-mini": {
     inputPerMillion: 0.25,
     outputPerMillion: 2,
+  },
+  "gpt-4o-mini": {
+    inputPerMillion: 0.15,
+    outputPerMillion: 0.6,
   },
 };
 

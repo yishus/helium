@@ -1,3 +1,4 @@
+import { readFile } from "fs/promises";
 import { AI, type Message, type MessageParam, type ModelId } from "./ai";
 import { Provider } from "./providers";
 import type { QuestionAnswer } from "./session";
@@ -18,8 +19,13 @@ interface StreamOptions {
   updateTokenUsage?: (input_tokens: number, output_tokens: number) => void;
 }
 
+// Token thresholds for summarization
+const TOKEN_THRESHOLD = 80000; // Trigger summarization at 80K tokens
+const RECENT_TURNS_TO_KEEP = 10; // Keep last 10 conversation turns intact
+
 export class Agent {
   private context: MessageParam[] = [];
+  private contextTokens: number = 0;
 
   constructor(
     public model: ModelId,
@@ -27,6 +33,102 @@ export class Agent {
     public systemPrompt?: string,
     public systemReminderStart?: string,
   ) {}
+
+  /**
+   * Format messages as readable text for summarization.
+   */
+  private formatMessagesAsText(messages: MessageParam[]): string {
+    const parts: string[] = [];
+
+    for (const message of messages) {
+      const role = message.role === "user" ? "User" : "Assistant";
+      const contentParts: string[] = [];
+
+      for (const block of message.content) {
+        if (block.type === "text") {
+          contentParts.push(block.text);
+        } else if (block.type === "tool_use") {
+          contentParts.push(
+            `[Tool: ${block.name}] Input: ${JSON.stringify(block.input).slice(0, 200)}...`,
+          );
+        } else if (block.type === "tool_result") {
+          // Truncate long tool results
+          const resultText = block.content
+            .map((c) => c.text)
+            .join("\n")
+            .slice(0, 500);
+          contentParts.push(
+            `[Tool Result: ${block.name}] ${resultText}${resultText.length >= 500 ? "..." : ""}`,
+          );
+        }
+      }
+
+      parts.push(`${role}:\n${contentParts.join("\n")}`);
+    }
+
+    return parts.join("\n\n---\n\n");
+  }
+
+  /**
+   * Generate a summary of messages using a small model.
+   */
+  private async generateSummary(messages: MessageParam[]): Promise<string> {
+    const promptTemplate = await readFile(
+      new URL("./prompts/summarize.md", import.meta.url),
+      "utf-8",
+    );
+
+    const conversationText = this.formatMessagesAsText(messages);
+    const prompt = promptTemplate.replace("$conversation", conversationText);
+
+    return AI.summarize(this.provider, prompt);
+  }
+
+  /**
+   * Check if context needs summarization and perform it if necessary.
+   */
+  private async maybeSummarize(
+    emitMessage?: (message: string) => void,
+  ): Promise<void> {
+    if (this.contextTokens < TOKEN_THRESHOLD) {
+      return;
+    }
+
+    // Calculate how many messages to keep (recent turns)
+    // Each turn is typically 2 messages (user + assistant)
+    const recentCount = RECENT_TURNS_TO_KEEP * 2;
+
+    // Don't summarize if we don't have enough messages
+    if (this.context.length <= recentCount) {
+      return;
+    }
+
+    const toSummarize = this.context.slice(0, -recentCount);
+    const toKeep = this.context.slice(-recentCount);
+
+    emitMessage?.("Summarizing conversation context...");
+
+    const summary = await this.generateSummary(toSummarize);
+
+    // Replace old messages with summary
+    this.context = [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `<context-summary>\nThe following is a summary of our earlier conversation:\n\n${summary}\n</context-summary>`,
+          },
+        ],
+      },
+      ...toKeep,
+    ];
+
+    // Reset token count - will be updated on next API call
+    this.contextTokens = 0;
+
+    emitMessage?.("Context summarized.");
+  }
 
   async *stream(input?: string, options?: StreamOptions) {
     const {
@@ -65,8 +167,12 @@ export class Agent {
       }
 
       const { message, usage } = await fullMessage();
-      console.log(message);
       updateTokenUsage?.(usage.input_tokens, usage.output_tokens);
+      this.contextTokens = usage.input_tokens; // Track current context size
+
+      // Check if we need to summarize before continuing
+      await this.maybeSummarize(emitMessage);
+
       this.context.push(message);
       if (message.content.every((c) => c.type !== "tool_use")) {
         break;
