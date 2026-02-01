@@ -1,6 +1,8 @@
-import { readFileSync } from "fs";
+import { mkdir, readFileSync } from "fs";
 import { join } from "path";
 import EventEmitter from "events";
+import { execSync } from "child_process";
+import { platform, release, tmpdir } from "os";
 
 import {
   type MessageDelta,
@@ -8,6 +10,7 @@ import {
   AVAILABLE_ANTHROPIC_MODELS,
   AVAILABLE_GOOGLE_MODELS,
   AVAILABLE_OPENAI_MODELS,
+  DEFAULT_ANTHROPIC_MODEL,
 } from "./ai";
 import { Agent } from "./agent";
 import { Provider } from "./providers";
@@ -49,12 +52,26 @@ const SYSTEM_PROMPT_PATH = join(__dirname, "prompts/system_workflow.md");
 
 export class Session {
   agent: Agent;
+  model: ModelId = DEFAULT_ANTHROPIC_MODEL;
+  provider: Provider = Provider.Anthropic;
   eventEmitter = new EventEmitter();
   canUseToolHandler?: (request: ToolUseRequest) => Promise<boolean>;
   memory: { [key: string]: any } = {};
   totalCost = 0;
 
   constructor() {
+    // Create scratchpad directory if it doesn't exist
+    const cwd = process.cwd();
+    const scratchpadPath = join(
+      tmpdir(),
+      "helium",
+      cwd.replace(/[:/\\]/g, "-"),
+      "scratchpad",
+    );
+    mkdir(scratchpadPath, { recursive: true }, (err) => {
+      if (err) throw err;
+    });
+    let systemPrompt: string | undefined;
     let systemReminderStart;
     try {
       const claudeMd = readFileSync(process.cwd() + "/CLAUDE.md", "utf8");
@@ -68,13 +85,36 @@ export class Session {
           claudeMd,
         );
       }
+      const readSystemPrompt = readFileSync(SYSTEM_PROMPT_PATH, "utf8");
+      const isGitRepo = execSync("git rev-parse --is-inside-work-tree");
+      const modelName = ALL_MODELS.find((m) => m.id === this.model)?.name || "";
+      systemPrompt = readSystemPrompt
+        .replace("$cwd", cwd)
+        .replace("$isGitRepo", isGitRepo ? "true" : "false")
+        .replace("$OS", platform())
+        .replace("$OSVersion", release())
+        .replace("$date", new Date().toISOString().split("T")[0] || "")
+        .replace("$model", modelName)
+        .replace("$modelId", this.model)
+        .replace("$scratchpadPath", scratchpadPath)
+        .replace(
+          "$branch",
+          execSync("git rev-parse --abbrev-ref HEAD").toString().trim(),
+        )
+        .replace(
+          "$gitStatus",
+          execSync('git log -n 5 --pretty=format:"%h %s"').toString().trim(),
+        )
+        .replace("$recentCommits", execSync("git status -s").toString().trim());
     } catch (err: unknown) {
       if (!isErrnoException(err) || err.code !== "ENOENT") {
         throw err;
       }
     } finally {
       this.agent = new Agent(
-        readFileSync(SYSTEM_PROMPT_PATH, "utf8"),
+        this.model,
+        this.provider,
+        systemPrompt,
         systemReminderStart,
       );
     }

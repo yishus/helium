@@ -1,10 +1,4 @@
-import {
-  AI,
-  type Message,
-  type MessageParam,
-  type ModelId,
-  DEFAULT_ANTHROPIC_MODEL,
-} from "./ai";
+import { AI, type Message, type MessageParam, type ModelId } from "./ai";
 import { Provider } from "./providers";
 import tools, {
   callTool,
@@ -23,10 +17,10 @@ interface StreamOptions {
 
 export class Agent {
   private context: MessageParam[] = [];
-  model: ModelId = DEFAULT_ANTHROPIC_MODEL;
-  provider: Provider = Provider.Anthropic;
 
   constructor(
+    public model: ModelId,
+    public provider: Provider,
     public systemPrompt?: string,
     public systemReminderStart?: string,
   ) {}
