@@ -15,6 +15,7 @@ const execAsync = promisify(exec);
 
 const slashCommands = [
   { name: "/model", description: "Select AI model", value: "model" },
+  { name: "/exit", description: "Exit the application", value: "exit" },
 ];
 
 interface Props {

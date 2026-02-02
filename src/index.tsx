@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { useState } from "react";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
@@ -8,7 +9,11 @@ import CodingAgent from "./components/CodingAgent";
 
 const session = new Session();
 
-const App = () => {
+interface AppProps {
+  onExit: () => void;
+}
+
+const App = ({ onExit }: AppProps) => {
   const [sessionState, setSessionState] = useState<"startup" | "started">(
     "startup",
   );
@@ -21,10 +26,13 @@ const App = () => {
   return (
     <>
       {sessionState == "startup" && (
-        <HomeScreen initialPromptSubmitted={handleInitialPromptSubmitted} />
+        <HomeScreen
+          initialPromptSubmitted={handleInitialPromptSubmitted}
+          onExit={onExit}
+        />
       )}
       {sessionState == "started" && (
-        <CodingAgent session={session} userPrompt={initialPrompt} />
+        <CodingAgent session={session} userPrompt={initialPrompt} onExit={onExit} />
       )}
     </>
   );
@@ -32,4 +40,10 @@ const App = () => {
 
 const renderer = await createCliRenderer();
 renderer.console.show();
-createRoot(renderer).render(<App />);
+
+const handleExit = () => {
+  renderer.destroy();
+  process.exit(0);
+};
+
+createRoot(renderer).render(<App onExit={handleExit} />);

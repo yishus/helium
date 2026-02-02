@@ -21,10 +21,11 @@ import type { AskUserQuestionInput } from "../tools";
 interface Props {
   session: Session;
   userPrompt: string;
+  onExit: () => void;
 }
 
 const CodingAgent = (props: Props) => {
-  const { session, userPrompt } = props;
+  const { session, userPrompt, onExit } = props;
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [tokenCost, setTokenCost] = useState(0);
   const [inputTokens, setInputTokens] = useState(0);
@@ -142,6 +143,10 @@ const CodingAgent = (props: Props) => {
   };
 
   const handleSubmit = (submittedText: string) => {
+    if (submittedText === "/exit" || submittedText === "exit") {
+      onExit();
+      return;
+    }
     if (submittedText === "/model") {
       setShowModelSelector(true);
       return;

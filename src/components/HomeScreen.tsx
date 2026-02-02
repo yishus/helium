@@ -2,12 +2,17 @@ import ChatTextbox from "./ChatTextbox";
 
 interface Props {
   initialPromptSubmitted: (prompt: string) => void;
+  onExit: () => void;
 }
 
 const HomeScreen = (props: Props) => {
-  const { initialPromptSubmitted } = props;
+  const { initialPromptSubmitted, onExit } = props;
 
   const handleSubmit = (submittedText: string) => {
+    if (submittedText === "/exit" || submittedText === "exit") {
+      onExit();
+      return;
+    }
     initialPromptSubmitted(submittedText);
   };
 

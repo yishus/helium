@@ -2,6 +2,9 @@
   "name": "helium",
   "module": "src/index.tsx",
   "type": "module",
+  "bin": {
+    "helium": "src/index.tsx"
+  },
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.tsx"

@@ -31,7 +31,7 @@ const parseHighlights = (text: string, baseColor: string): TextSegment[] => {
     codeMatches.push({
       start: match.index,
       end: match.index + match[0].length,
-      text: match[1],
+      text: match[1] ?? "",
     });
   }
 
@@ -76,7 +76,7 @@ const parseFilePaths = (text: string, baseColor: string): TextSegment[] => {
   let match;
   while ((match = PATTERNS.path.exec(text)) !== null) {
     const fullMatch = match[0];
-    const path = match[1];
+    const path = match[1] ?? "";
     const matchStart = match.index + (fullMatch.length - path.length);
 
     // Add text before this match
